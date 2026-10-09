@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+    <meta charset="UTF-8">
+    <title>Sensor Data Dashboard</title>
+    <!-- Chart.js සහ PapaParse ඇතුළත් කිරීම -->
+    <script src="https://jsdelivr.net"></script>
+    <script src="https://cloudflare.com"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; background: #f4f4f9; }
+        .container { width: 80%; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Live Sensor Data Dashboard</h2>
+        <p>දත්ත සෑම විනාඩියකටම වරක් ස්වයංක්‍රීයව යාවත්කාලීන වේ.</p>
+        <canvas id="sensorChart"></canvas>
+    </div>
+
+    <script>
+        // ඔබ Copy කරගත් Google Sheet CSV URL එක මෙතැනට දමන්න
+        const csvUrl = 'ඔබේ_GOOGLE_SHEET_CSV_URL_එක_මෙතැනට'; 
+        let myChart;
+
+        function fetchSensorData() {
+            Papa.parse(csvUrl, {
+                download: true,
+                header: true,
+                complete: function(results) {
+                    const data = results.data;
+                    
+                    // ඔබේ Google Sheet එකේ ඇති Column Names (තීරු වල නම්) මෙතැනට දෙන්න
+                    // උදාහරණයක් ලෙස කාලය 'Time' සහ සංවේදක අගය 'Value' ලෙස උපකල්පනය කර ඇත
+                    const labels = data.map(row => row.Time); 
+                    const values = data.map(row => row.Value);
+
+                    updateChart(labels, values);
+                }
+            });
+        }
+
+        function updateChart(labels, values) {
+            const ctx = document.getElementById('sensorChart').getContext('2d');
+            
+            if (myChart) {
+                myChart.destroy(); // පැරණි Chart එක මකා අලුත් දත්ත ඇතුළත් කිරීම
+            }
+
+            myChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Sensor Reading',
+                        data: values,
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: { title: { display: true, text: 'කාලය (Time)' } },
+                        y: { title: { display: true, text: 'අගය (Value)' } }
+                    }
+                }
+            });
+        }
+
+        // මුලින්ම දත්ත Load කිරීම
+        fetchSensorData();
+
+        // සෑම තත්පර 60කට වරක්ම (විනාඩියකට වරක්) දත්ත අලුතෙන් Fetch කිරීම
+        setInterval(fetchSensorData, 60000);
+    </script>
+</body>
+</html>
