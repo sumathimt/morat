@@ -2,167 +2,54 @@
 <html lang="si">
 <head>
     <meta charset="UTF-8">
-    <title>දොරවල් 10ක තත්ත්ව දර්ශකය (Door Status Dashboard)</title>
-    <!-- Google Fonts වෙතින් Seven Segment පෙනුම ලබා ගැනීම සඳහා -->
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
-    <!-- Chart.js සහ PapaParse ඇතුළත් කිරීම -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <title>සංවේදක තත්ත්ව දර්ශකය (Sensor Dashboard)</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f4f4f9;
-            margin: 0;
-            padding: 20px;
-        }
-        /* Glass Theme සහිත Seven-Segment දිනය සහ වේලාව පෙන්වන කොටස (වම් කෙළවර ඉහළින්) */
-        #dateTimeDisplay {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            background: rgba(255, 255, 255, 0.25);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            padding: 10px 15px;
-            border-radius: 10px;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
-            font-family: 'Orbitron', sans-serif;
-            font-size: 14px;
-            color: #333;
-            text-align: center;
-        }
-        .container {
-            width: 85%;
-            margin: 60px auto 0 auto; /* ඉහළින් ඇති දිනය සඳහා ඉඩ හැර ඇත */
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            text-align: center;
-        }
-        .last-update {
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 20px;
-        }
-        /* දොරවල් 10 සඳහා Grid පද්ධතිය */
-        .doors-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
-        }
-        .door-card {
-            background: #f9f9f9;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            padding: 15px;
-            font-weight: bold;
-            transition: all 0.3s ease;
-        }
-        /* අගුලු දමා ඇති අවස්ථාව (Locked) */
-        .locked {
-            background-color: #d4edda;
-            border-color: #28a745;
-            color: #155724;
-        }
-        /* අගුලු දමා නැති අවස්ථාව (Unlocked) */
-        .unlocked {
-            background-color: #f8d7da;
-            border-color: #dc3545;
-            color: #721c24;
-        }
+        body { font-family: Arial, sans-serif; background-color: #f4f4f9; text-align: center; padding: 20px; }
+        h2 { color: #333; }
+        .grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; max-width: 900px; margin: 0 auto; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); font-size: 18px; }
+        .locked { color: #d9534f; font-weight: bold; }
+        .unlocked { color: #5cb85c; font-weight: bold; }
+        #timestamp { font-size: 14px; color: #777; margin-top: 20px; }
     </style>
 </head>
 <body>
 
-    <!-- වම් කෙළවරේ ඉහළින් Glass Theme සහිත Seven Segment දිනය සහ වේලාව -->
-    <div id="dateTimeDisplay">
-        <div id="dateText">------</div>
-        <div id="timeText" style="font-size: 18px; margin-top: 5px; font-weight: bold;">--:--:--</div>
-    </div>
-
-    <div class="container">
-        <h2>දොරවල් 10ක තත්ත්ව දර්ශකය (Door Status Dashboard)</h2>
-        <div class="last-update" id="lastUpdateText">අවසන් වරට යාවත්කාලීන වූ දිනය හා වේලාව: -</div>
-        
-        <div class="doors-grid" id="doorsContainer">
-            <!-- JavaScript හරහා දොරවල් 10 මෙහි ස්වයංක්‍රීයව ජනනය වේ -->
-        </div>
-    </div>
+    <h2>ਸංවේදක 10 ක සජීවී තත්ත්වය (Live Sensor Status)</h2>
+    <div class="grid-container" id="sensorGrid">දත්ත ලබා ගනිමින් පවතී...</div>
+    <div id="timestamp">අවසන් වරට යාවත්කාලීන වූ වේලාව: -</div>
 
     <script>
-        // ඔබ Copy කරගත් Google Sheet CSV URL එක මෙතැනට දමන්න
-        const csvUrl = 'ඔබේ_GOOGLE_SHEET_CSV_URL_එක_මෙතැනට'; 
+        const webAppUrl = "https://script.google.com/macros/s/AKfycby-MjBxa86aCtxhjSzupTTk4pJGzRQLdfUMET914tuOJkqwcUk_TK8Z_Zttu8jttlU-3Q/exec"; // ඉහත පියවරේදී ලැබුණු URL එක මෙහි දමන්න
 
-        // තත්‍ය කාලීනව (Real-time) දිනය සහ වේලාව යාවත්කාලීන කිරීම (Seven-Segment පෙනුම සමඟ)
-        function updateClock() {
-            const now = new Date();
-            
-            // දිනය සකස් කරගැනීම (YYYY-MM-DD)
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const day = String(now.getDate()).padStart(2, '0');
-            
-            // වේලාව සකස් කරගැනීම (HH:MM:SS)
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            const seconds = String(now.getSeconds()).padStart(2, '0');
-
-            document.getElementById('dateText').innerText = `${year}-${month}-${day}`;
-            document.getElementById('timeText').innerText = `${hours}:${minutes}:${seconds}`;
-        }
-        setInterval(updateClock, 1000);
-        updateClock();
-
-        // Google Sheet එකෙන් දත්ත ලබාගෙන දොරවල් 10 පෙන්වීම
-        function fetchDoorData() {
-            Papa.parse(csvUrl, {
-                download: true,
-                header: true,
-                complete: function(results) {
-                    const data = results.data;
-                    if (data && data.length > 0) {
-                        // අවසන් පේළියේ ඇති නවතම දත්ත ලබා ගැනීම
-                        const latestRow = data[data.length - 1] || data[data.length - 2];
+        function fetchSensorData() {
+            fetch(webAppUrl)
+                .then(response => response.json())
+                .then(data => {
+                    const grid = document.getElementById('sensorGrid');
+                    grid.innerHTML = "";
+                    
+                    data.forEach(sensor => {
+                        const card = document.createElement('div');
+                        card.className = 'card';
                         
-                        const container = document.getElementById('doorsContainer');
-                        container.innerHTML = '';
+                        let statusClass = sensor.status.toLowerCase() === 'locked' ? 'locked' : 'unlocked';
+                        
+                        card.innerHTML = `<strong>${sensor.id}</strong><br><br><span class="${statusClass}">${sensor.status}</span>`;
+                        grid.appendChild(card);
+                    });
 
-                        // දොරවල් 10 සඳහා ලූපයක් (Loop එකක්) ක්‍රියාත්මක කිරීම
-                        // Google Sheet එකේ Column නම් Door1, Door2, ... Door10 ලෙස ඇතැයි උපකල්පනය කර ඇත
-                        for (let i = 1; i <= 10; i++) {
-                            const doorKey = 'Door' + i; // මෙහි ඔබේ Sheet එකේ ඇති නමට අනුව වෙනස් කරගත හැක (උදා: Sensor1 ආදී වශයෙන්)
-                            const statusValue = latestRow[doorKey]; 
-
-                            // අගුලු දමා තිබේද නැද්ද යන්න පරීක්ෂා කිරීම (උදාහරණයක් ලෙස 'Closed' හෝ '1' යනු අගුලු දමා ඇති බවයි)
-                            // ඔබගේ Sheet එකේ අගය 'Locked' / 'Unlocked' හෝ '1' / '0' විය හැක.
-                            const isLocked = (statusValue == '1' || statusValue == 'Locked' || statusValue == 'Closed');
-
-                            const card = document.createElement('div');
-                            card.className = `door-card ${isLocked ? 'locked' : 'unlocked'}`;
-                            card.innerHTML = `
-                                <div>දොර ${i}</div>
-                                <div style="margin-top: 8px; font-size: 16px;">
-                                    ${isLocked ? '🔒 අගුලු දමා ඇත' : '🔓 අගුලු දමා නැත'}
-                                </div>
-                            `;
-                            container.appendChild(card);
-                        }
-
-                        // අවසන් වරට යාවත්කාලීන වූ වේලාව පෙන්වීම
-                        const nowString = new Date().toLocaleString();
-                        document.getElementById('lastUpdateText').innerText = `අවසන් වරට යාවත්කාලීන වූ දිනය හා වේලාව: ${nowString}`;
-                    }
-                }
-            });
+                    document.getElementById('timestamp').innerText = "අවසන් වරට යාවත්කාලීන වූ වේලාව: " + new Date().toLocaleTimeString();
+                })
+                .catch(error => console.error('දත්ත ලබා ගැනීමේ දෝෂයක්:', error));
         }
 
-        // මුලින්ම දත්ත Load කිරීම
-        fetchDoorData();
+        // මුල් වරට දත්ත ලබා ගැනීම
+        fetchSensorData();
 
-        // සෑම තත්පර 60කට වරක්ම (විනාඩියකට වරක්) දත්ත අලුතෙන් Fetch කිරීම
-        setInterval(fetchDoorData, 60000);
+        // තත්පර 5 කට වරක් (තත්පර 5000 ms) දත්ත ස්වයංක්‍රීයව යාවත්කාලීන කිරීම
+        setInterval(fetchSensorData, 5000);
     </script>
+
 </body>
 </html>
